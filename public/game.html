@@ -109,6 +109,18 @@
             margin-bottom: 15px;
         }
 
+        .stat-container-messages>.stat-value {
+            margin-bottom: 15px;
+            flex: 1;
+            overflow-y: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            border-color: white;
+            border-style: solid;
+            border-width: 1px;
+        }
+
         .stat-label {
             font-size: 0.9rem;
             color: #4285f4;
@@ -263,6 +275,11 @@
         <!-- Sidebar izquierda -->
         <div class="sidebar">
             <div class="stat-container">
+                <div class="stat-label">COORDENADAS</div>
+                <div class="stat-value" id="coordValue">X: 0 | Y: 0</div>
+            </div>
+
+            <div class="stat-container">
                 <div class="stat-label">SALUD</div>
                 <div class="stat-value" id="healthValue">100/100</div>
                 <div class="stat-bar">
@@ -315,9 +332,16 @@
                 </div>
             </div>
 
-            <div id="messagesContainer" class="stat-container">
+            <div id="messagesContainer" class="stat-container-messages">
                 <div class="stat-label">MENSAJES</div>
-                <div id="gameMessages" class="stat-value"></div>
+                <div id="gameMessages" class="stat-value">
+                </div>
+            </div>
+            <div class="stat-container">
+                <div class="stat-label">CREDITOS</div>
+                <div class="stat-value">
+                    <p>Musica por @JDSherbert</p>
+                </div>
             </div>
         </div>
     </div>
@@ -338,6 +362,26 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        const sounds = {
+            shoot: new Audio('/assets/sounds/shoot.ogg'),
+            hit: new Audio('/assets/sounds/hit.ogg'),
+            powerUp: new Audio('/assets/sounds/powerup.ogg'),
+            death: new Audio('/assets/sounds/death.ogg'),
+            respawn: new Audio('/assets/sounds/respawn.ogg'),
+            move: new Audio('/assets/sounds/move.ogg'),
+            reload: new Audio('/assets/sounds/reload.ogg'),
+            bgm_arena: new Audio('/assets/sounds/bgm_arena.ogg'),
+        };
+        sounds.move.loop = true;
+        sounds.bgm_arena.loop = true;
+
+        let moving = false;
+
+        function playSound(sound) {
+            const clone = sound.cloneNode();
+            clone.play();
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             // Obtener datos del jugador
             const playerName = sessionStorage.getItem('playerName') || 'Piloto';
@@ -449,6 +493,9 @@
                 // Conectar al servidor
                 const socket = io();
 
+                // Reproducir música de fondo
+                sounds.bgm_arena.volume = 0.5;
+                sounds.bgm_arena.play();
                 // Datos del juego
                 let gameState = {
                     players: {},
@@ -497,7 +544,6 @@
 
                     // Actualizar la lista de jugadores
                     updatePlayerList();
-
                     // Mensaje de bienvenida
                     addMessage(`Bienvenido a la batalla, ${playerName}!`);
                 });
@@ -515,6 +561,7 @@
                         gameState.players[data.id].x = data.x;
                         gameState.players[data.id].y = data.y;
                         gameState.players[data.id].rotation = data.rotation;
+                        updateCoordinatesUI(data.x, data.y);
                     }
                 });
 
@@ -537,9 +584,11 @@
                 socket.on('bulletHit', (data) => {
                     const { bulletId, targetId } = data;
 
-                    if (gameState.bullets[bulletId] && gameState.players[targetId]) {
-                        // Crear explosión en la posición del impacto
+                    if (gameState.bullets[bulletId]) {
                         const bullet = gameState.bullets[bulletId];
+                        playSound(sounds.hit);
+
+                        // Crear explosión en la posición del impacto
                         explosions.push({
                             x: bullet.x,
                             y: bullet.y,
@@ -547,29 +596,18 @@
                             maxFrames: 8 // Número de frames para la animación
                         });
 
-                        // Si el jugador que recibe el daño somos nosotros, enviar confirmación al servidor
+                        // Si el jugador impactado somos nosotros, efecto visual de daño
                         if (targetId === playerId) {
-                            socket.emit('playerHit', {
-                                bulletId: bulletId,
-                                targetId: targetId
-                            });
+                            // Feedback visual de daño (parpadeo rojo)
+                            document.body.style.backgroundColor = '#500a18';
+                            setTimeout(() => {
+                                document.body.style.backgroundColor = '#050a18';
+                            }, 100);
                         }
                     }
                 });
 
-                socket.on('reloadStarted', () => {
-                    if (gameState.players[playerId]) {
-                        const ammoValue = document.getElementById('ammoValue');
-                        ammoValue.textContent = "Recargando...";
-
-                        // Animación de recarga
-                        const ammoBar = document.getElementById('ammoBar');
-                        ammoBar.style.transition = 'width 1s linear';
-                        ammoBar.style.width = '100%';
-                        ammoBar.style.backgroundColor = '#4285f4'; // Azul durante recarga
-                    }
-                });
-
+                // El evento playerDamaged ya existe y ahora lo usa el servidor para notificar el daño
                 socket.on('playerDamaged', (data) => {
                     if (gameState.players[data.id]) {
                         gameState.players[data.id].health = data.health;
@@ -577,12 +615,6 @@
                         // Actualizar UI si es el jugador local
                         if (data.id === playerId) {
                             updateHealthUI(data.health);
-
-                            // Feedback visual de daño (parpadeo rojo)
-                            document.body.style.backgroundColor = '#500a18';
-                            setTimeout(() => {
-                                document.body.style.backgroundColor = '#050a18';
-                            }, 100);
 
                             // Mensaje si la salud es crítica
                             if (data.health <= 30 && data.health > 0) {
@@ -592,9 +624,46 @@
                     }
                 });
 
+                // Evento para actualización de munición en tiempo real
+                socket.on('ammoUpdated', (data) => {
+                    if (gameState.players[playerId]) {
+                        gameState.players[playerId].ammo = data.ammo;
+                        updateAmmoUI(data.ammo);
+                    }
+                });
+
+                // Evento cuando se inicia la recarga
+                socket.on('reloadStarted', () => {
+                    if (gameState.players[playerId]) {
+                        gameState.players[playerId].reloading = true;
+                        const ammoValue = document.getElementById('ammoValue');
+                        ammoValue.textContent = "Recargando...";
+                        playSound(sounds.reload);
+
+                        // Animación de recarga
+                        const ammoBar = document.getElementById('ammoBar');
+                        ammoBar.style.transition = 'width 1s linear';
+                        ammoBar.style.width = '100%';
+                        ammoBar.style.backgroundColor = '#4285f4'; // Azul durante recarga
+
+                    }
+                });
+
+                // Evento cuando se deniega un disparo
+                socket.on('shootDenied', (data) => {
+                    if (data.reason === 'reloading') {
+                        // Mostrar mensaje al jugador
+                        addMessage("No puedes disparar mientras recargas");
+                    } else if (data.reason === 'noAmmo') {
+                        // Mostrar mensaje al jugador
+                        addMessage("Sin munición. Recargando...");
+                    }
+                });
+
                 socket.on('playerKilled', (data) => {
                     if (gameState.players[data.killed]) {
                         gameState.players[data.killed].alive = false;
+                        if (data.killed === playerId) playSound(sounds.death);
 
                         // Crear explosión grande en la posición del jugador eliminado
                         const player = gameState.players[data.killed];
@@ -634,6 +703,7 @@
 
                 socket.on('respawned', (data) => {
                     if (gameState.players[playerId]) {
+                        playSound(sounds.respawn);
                         gameState.players[playerId].x = data.position.x;
                         gameState.players[playerId].y = data.position.y;
                         gameState.players[playerId].health = 100;
@@ -688,6 +758,7 @@
                 socket.on('powerUpCollected', (data) => {
                     // Eliminar el power-up
                     gameState.powerUps = gameState.powerUps.filter(pu => pu.id !== data.powerUpId);
+                    if (data.playerId === playerId) playSound(sounds.powerUp);
 
                     // Aplicar al jugador
                     if (gameState.players[data.playerId]) {
@@ -714,7 +785,7 @@
                         addMessage("¡Munición recargada!");
                     }
                 });
-                
+
                 socket.on('scoreUpdated', (data) => {
                     if (gameState.players[playerId]) {
                         gameState.players[playerId].score = data.score;
@@ -791,9 +862,19 @@
                     cameraOffset.x = player.x - canvas.width / 2;
                     cameraOffset.y = player.y - canvas.height / 2;
 
+                    updateCoordinatesUI(player.x, player.y);
+
                     // Limitar la cámara al área de juego
                     cameraOffset.x = Math.max(0, Math.min(cameraOffset.x, gameState.gameArea.width - canvas.width));
                     cameraOffset.y = Math.max(0, Math.min(cameraOffset.y, gameState.gameArea.height - canvas.height));
+                }
+
+                function updateCoordinatesUI(x, y) {
+                    const coordValue = document.getElementById('coordValue');
+                    // Redondear a 2 decimales para mejor visualización
+                    const formattedX = Math.round(x * 100) / 100;
+                    const formattedY = Math.round(y * 100) / 100;
+                    coordValue.textContent = `X: ${formattedX} | Y: ${formattedY}`;
                 }
 
                 function worldToScreen(x, y) {
@@ -840,8 +921,60 @@
                     document.getElementById('scoreValue').textContent = score;
                 }
 
+                // Evento para actualización global de puntuación (cuando otro jugador puntúa)
+                socket.on('globalScoreUpdate', (data) => {
+                    if (gameState.players[data.playerId]) {
+                        gameState.players[data.playerId].score = data.score;
+
+                        // Actualizar la lista de jugadores con las nuevas puntuaciones
+                        updatePlayerList();
+
+                        // Mostrar mensaje si el jugador es uno de los top 3 y su puntuación es múltiplo de 500
+                        if (data.score % 500 === 0) {
+                            // Obtener lista ordenada de jugadores
+                            const sortedPlayers = Object.values(gameState.players)
+                                .sort((a, b) => b.score - a.score);
+
+                            // Verificar si el jugador está entre los top 3
+                            const playerRank = sortedPlayers.findIndex(p => p.id === data.playerId);
+                            if (playerRank < 3) {
+                                addMessage(`¡${gameState.players[data.playerId].name} ha alcanzado ${data.score} puntos!`);
+                            }
+                        }
+                    }
+                });
+
+                // Evento para sincronización periódica del marcador
+                socket.on('scoreboardSync', (players) => {
+                    // Actualizar puntuaciones y estados de todos los jugadores
+                    players.forEach(player => {
+                        if (gameState.players[player.id]) {
+                            gameState.players[player.id].score = player.score;
+                            gameState.players[player.id].alive = player.alive;
+                        }
+                    });
+
+                    // Actualizar la lista de jugadores
+                    updatePlayerList();
+                });
+
+                // ...existing code...
+
+                // Modificar la función updatePlayerList para mostrar un indicador visual de cambios recientes
                 function updatePlayerList() {
                     const container = document.getElementById('playerListContainer');
+                    const previousScores = {};
+
+                    // Guardar puntuaciones actuales para comparar
+                    Array.from(container.children).forEach(item => {
+                        const id = item.dataset.playerId;
+                        const scoreElement = item.querySelector('.player-score');
+                        if (id && scoreElement) {
+                            previousScores[id] = parseInt(scoreElement.textContent, 10);
+                        }
+                    });
+
+                    // Limpiar lista actual
                     container.innerHTML = '';
 
                     // Ordenar jugadores por puntuación
@@ -850,14 +983,17 @@
                     sortedPlayers.forEach(player => {
                         const item = document.createElement('div');
                         item.className = 'player-item';
+                        item.dataset.playerId = player.id; // Guardar ID para referencia futura
 
                         const nameSpan = document.createElement('span');
                         nameSpan.className = 'player-name';
                         nameSpan.textContent = player.name;
+
                         if (!player.alive) {
                             nameSpan.style.color = '#f44242';
                             nameSpan.textContent += ' (eliminado)';
                         }
+
                         if (player.id === playerId) {
                             nameSpan.style.fontWeight = 'bold';
                         }
@@ -866,11 +1002,34 @@
                         scoreSpan.className = 'player-score';
                         scoreSpan.textContent = player.score;
 
+                        // Destacar visualmente si la puntuación ha cambiado
+                        if (previousScores[player.id] !== undefined && previousScores[player.id] < player.score) {
+                            scoreSpan.style.color = '#42f498'; // Verde para puntuación aumentada
+
+                            // Animación de pulso
+                            scoreSpan.style.animation = 'scorePulse 1s';
+                            scoreSpan.addEventListener('animationend', () => {
+                                scoreSpan.style.animation = '';
+                                scoreSpan.style.color = '#f4b942'; // Volver al color normal
+                            });
+                        }
+
                         item.appendChild(nameSpan);
                         item.appendChild(scoreSpan);
                         container.appendChild(item);
                     });
                 }
+
+                // Añadir estilos para la animación de puntuación
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes scorePulse {
+                        0% { transform: scale(1); }
+                        50% { transform: scale(1.3); }
+                        100% { transform: scale(1); }
+                    }
+                `;
+                document.head.appendChild(style);
 
                 function showPowerUpIndicator(type) {
                     const indicator = document.getElementById('powerUpIndicator');
@@ -899,7 +1058,7 @@
 
                     messages.forEach(msg => {
                         const p = document.createElement('p');
-                        p.textContent = msg.text;
+                        p.textContent = `L.U.N.A > ${msg.text}`;
                         container.appendChild(p);
                     });
                 }
@@ -924,26 +1083,22 @@
 
                 function processPlayerInput() {
                     if (!gameState.players[playerId] || !gameState.players[playerId].alive || isPaused) return;
-
                     const player = gameState.players[playerId];
                     let moved = false;
 
                     // Movimiento
-                    if (keys.w) {
-                        player.y -= player.speed;
-                        moved = true;
-                    }
-                    if (keys.s) {
-                        player.y += player.speed;
-                        moved = true;
-                    }
-                    if (keys.a) {
-                        player.x -= player.speed;
-                        moved = true;
-                    }
-                    if (keys.d) {
-                        player.x += player.speed;
-                        moved = true;
+                    if (keys.w) { player.y -= player.speed; moved = true; }
+                    if (keys.s) { player.y += player.speed; moved = true; }
+                    if (keys.a) { player.x -= player.speed; moved = true; }
+                    if (keys.d) { player.x += player.speed; moved = true; }
+
+                    if (moved && !moving) {
+                        sounds.move.play();
+                        moving = true;
+                    } else if (!moved && moving) {
+                        sounds.move.pause();
+                        sounds.move.currentTime = 0;
+                        moving = false;
                     }
 
                     // Limitar al área de juego
@@ -970,7 +1125,6 @@
 
                         player.rotation = angle;
 
-                        // Enviar movimiento al servidor
                         socket.emit('playerMovement', {
                             x: player.x,
                             y: player.y,
@@ -978,26 +1132,22 @@
                         });
                     }
 
-                    // Disparar
-                    if (keys.space && player.ammo > 0 && !player.reloading) {
-                        socket.emit('playerShoot', {
-                            x: player.x,
-                            y: player.y
-                        });
-                        keys.space = false; // Evitar disparo continuo
+
+                    // Disparar - ahora simplemente envía la solicitud al servidor
+                    if (keys.space && gameState.players[playerId].reloading === false) {
+                        keys.space = false;
+                        socket.emit('playerShoot', { x: player.x, y: player.y });
+                        playSound(sounds.shoot);
                     }
 
-                    // Recargar manualmente
-                    if (keys.r && !player.reloading) {
-                        player.reloading = true;
-                        addMessage("Recargando...");
-
+                    // Recargar manualmente - ahora simplemente envía la solicitud al servidor
+                    if (keys.r) {
                         socket.emit('playerShoot', {
                             x: player.x,
                             y: player.y,
                             reload: true
                         });
-
+                        addMessage("Recargando munición...");
                         keys.r = false;
                     }
                 }

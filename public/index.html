@@ -10,6 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
         /* Estilos para el modal */
         .modal-overlay {
             display: none;
@@ -84,6 +89,10 @@
             flex: 1;
         }
     </style>
+    <audio id="hoverSound" src="assets/sounds/hover.ogg" preload="auto"></audio>
+    <audio id="clickSound" src="assets/sounds/click.ogg" preload="auto"></audio>
+    <audio id="typeSound" src="assets/sounds/type.ogg" preload="auto"></audio>
+    <audio id="bgmSound" src="assets/sounds/bgm_menu.ogg" preload="auto"></audio>
 </head>
 
 <body>
@@ -111,6 +120,7 @@
                 </div>
 
                 <button class="button play-button" id="playButton">¡JUGAR AHORA!</button>
+                <button class="button secondary" id="playMusicButton">> Activar Música</button>
             </div>
 
             <div class="instructions">
@@ -119,6 +129,15 @@
                 <p><span>Barra Espaciadora</span> para disparar</p>
                 <p><span>R</span> para recargar manualmente</p>
                 <p><span>ESC</span> para pausar el juego</p>
+                <h3>Créditos</h3>
+                <p><span>Ideado por</span> Paulo Taipe</p>
+                <p><a href="https://www.linkedin.com/in/soyelseba-/"><span>Desarrollado por</span> Sebastian Morales</a>
+                </p>
+                <p><a href="https://davidkbd.itch.io/cosmic-journey-space-themed-music-pack"><span>Musica del menú
+                            por</span> @DavidKBD</a></p>
+                <p><span>Sprites por</span> Kenney.nl y SoyElSeba_</p>
+                <p><span>Sonidos por</span> Kenney.nl</p>
+                <p><span>Inspirado en</span> Galaga</p>
             </div>
         </div>
     </div>
@@ -184,6 +203,71 @@
             const saveSkinButton = document.getElementById('saveSkinButton');
             const cancelSkinButton = document.getElementById('cancelSkinButton');
             const playButton = document.getElementById('playButton');
+            const playMusicButton = document.getElementById('playMusicButton');
+
+            const hoverSound = document.getElementById('hoverSound');
+            const clickSound = document.getElementById('clickSound');
+            const typeSound = document.getElementById('typeSound');
+            const bgmSound = document.getElementById('bgmSound');
+
+            // Reproducción de música de fondo
+            playMusicButton.addEventListener('click', function () {
+                if (bgmSound.paused) {
+                    bgmSound.volume = 0.2; // Volumen bajo
+                    bgmSound.loop = true; // Repetir música
+                    bgmSound.play();
+                    playMusicButton.textContent = 'Música Activada';
+                } else {
+                    bgmSound.pause();
+                    playMusicButton.textContent = 'Activar Música';
+                }
+            });
+
+            if (navigator.getAutoplayPolicy("mediaelement") === "allowed") {
+                bgmSound.volume = 0.2; // Volumen bajo
+                bgmSound.loop = true; // Repetir música
+                bgmSound.play();
+            } else if (navigator.getAutoplayPolicy("mediaelement") === "allowed-muted") {
+                bgmSound.volume = 0; // Silenciar música
+                bgmSound.loop = true; // Repetir música
+                bgmSound.play();
+            } else if (navigator.getAutoplayPolicy("mediaelement") === "disallowed") {
+                bgmSound.pause();
+            }
+
+            function playSound(sound) {
+                // Clonamos el sonido para permitir reproducciones superpuestas
+                const soundClone = sound.cloneNode();
+                soundClone.volume = 0.6; // Volumen moderado
+                soundClone.play();
+
+                // Limpieza después de reproducir
+                soundClone.addEventListener('ended', function () {
+                    this.remove();
+                });
+            }
+            // Implementación de efectos de sonido
+
+            // 1. Hover en elementos interactuables
+            const interactiveElements = document.querySelectorAll('.button, .skin-option, #colorPicker');
+            interactiveElements.forEach(element => {
+                element.addEventListener('mouseenter', function () {
+                    playSound(hoverSound);
+                });
+            });
+
+            // 2. Click en botones
+            const buttons = document.querySelectorAll('.button, .skin-option, #eraserButton, #clearButton');
+            buttons.forEach(button => {
+                button.addEventListener('click', function () {
+                    playSound(clickSound);
+                });
+            });
+
+            // 3. Escribir en el input
+            playerNameInput.addEventListener('input', function (e) {
+                playSound(typeSound);
+            });
 
             // Configuración inicial del canvas
             ctx.fillStyle = 'black';
