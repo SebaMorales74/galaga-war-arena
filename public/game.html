@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <title>Galaga War Arena - En Batalla</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #050a18;
+            color: #ffffff;
+            font-family: 'Audiowide', cursive;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Fondo de estrellas */
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: twinkle 5s infinite;
+        }
+
+        @keyframes twinkle {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Estructura del juego */
+        .game-container {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            width: 100%;
+            height: calc(100vh - 60px);
+        }
+
+        .game-header {
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            background-color: #0a1929;
+            border-bottom: 2px solid #4285f4;
+        }
+
+        .game-title {
+            font-size: 1.5rem;
+            color: #4285f4;
+            text-shadow: 0 0 10px rgba(66, 133, 244, 0.7);
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Canvas y UI lateral */
+        .canvas-container {
+            flex: 3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sidebar {
+            flex: 1;
+            background-color: rgba(10, 25, 41, 0.7);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Canvas principal */
+        #gameCanvas {
+            background-color: black;
+            border: 2px solid #4285f4;
+            box-shadow: 0 0 20px rgba(66, 133, 244, 0.4);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Elementos UI */
+        .stat-container {
+            margin-bottom: 15px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #4285f4;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .stat-bar {
+            width: 100%;
+            height: 15px;
+            background-color: #1c3451;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            border-radius: 5px;
+        }
+
+        .health-fill {
+            background-color: #42f498;
+        }
+
+        .ammo-fill {
+            background-color: #f4b942;
+        }
+
+        .player-list {
+            flex: 1;
+            margin-top: 20px;
+            overflow-y: auto;
+        }
+
+        .player-list-title {
+            font-size: 1rem;
+            color: #4285f4;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin-bottom: 5px;
+            background-color: rgba(28, 52, 81, 0.5);
+            border-radius: 5px;
+        }
+
+        .player-name {
+            font-size: 0.9rem;
+        }
+
+        .player-score {
+            font-size: 0.9rem;
+            color: #f4b942;
+        }
+
+        /* Estilos para mensajes del juego */
+        .message-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(10, 25, 41, 0.9);
+            border: 2px solid #4285f4;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .message-title {
+            font-size: 1.5rem;
+            color: #4285f4;
+            margin-bottom: 10px;
+        }
+
+        .message-text {
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-family: 'Audiowide', cursive;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #5a96f5;
+        }
+
+        /* Estilos para móviles */
+        @media (max-width: 900px) {
+            .game-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                order: -1;
+                height: 200px;
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .stat-container {
+                width: 48%;
+            }
+
+            .player-list {
+                display: none;
+            }
+        }
+
+        #powerUpIndicator {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(10, 25, 41, 0.8);
+            border: 1px solid #4285f4;
+            border-radius: 5px;
+            padding: 5px 10px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-header">
+        <div class="game-title">GALAGA WAR ARENA</div>
+        <div class="player-info">
+            <span id="playerName">Cargando...</span>
+            <button id="exitButton" class="button">Salir</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <!-- Sidebar izquierda -->
+        <div class="sidebar">
+            <div class="stat-container">
+                <div class="stat-label">SALUD</div>
+                <div class="stat-value" id="healthValue">100/100</div>
+                <div class="stat-bar">
+                    <div class="stat-fill health-fill" id="healthBar" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-container">
+                <div class="stat-label">MUNICIÓN</div>
+                <div class="stat-value" id="ammoValue">10/10</div>
+                <div class="stat-bar">
+                    <div class="stat-fill ammo-fill" id="ammoBar" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-container">
+                <div class="stat-label">PUNTUACIÓN</div>
+                <div class="stat-value" id="scoreValue">0</div>
+            </div>
+
+            <div class="player-list">
+                <div class="player-list-title">JUGADORES</div>
+                <div id="playerListContainer"></div>
+            </div>
+        </div>
+
+        <!-- Contenedor del canvas principal -->
+        <div class="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+            <div id="powerUpIndicator"></div>
+        </div>
+
+        <!-- Sidebar derecha -->
+        <div class="sidebar">
+            <div class="stat-container">
+                <div class="stat-label">CONTROLES</div>
+                <div class="stat-value">
+                    <p>W, A, S, D - Movimiento</p>
+                    <p>Espacio - Disparar</p>
+                    <p>R - Recargar</p>
+                    <p>ESC - Pausar</p>
+                </div>
+            </div>
+
+            <div class="stat-container">
+                <div class="stat-label">POWER-UPS</div>
+                <div class="stat-value">
+                    <p>Triple - Disparo triple</p>
+                    <p>Homing - Disparo teledirigido</p>
+                </div>
+            </div>
+
+            <div id="messagesContainer" class="stat-container">
+                <div class="stat-label">MENSAJES</div>
+                <div id="gameMessages" class="stat-value"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensajes del juego -->
+    <div class="message-container" id="deathMessage">
+        <div class="message-title">¡Has sido derribado!</div>
+        <div class="message-text">Otro piloto te ha eliminado. ¿Quieres volver a la batalla?</div>
+        <button id="respawnButton" class="button">Reaparecer</button>
+    </div>
+
+    <div class="message-container" id="pauseMenu">
+        <div class="message-title">Juego Pausado</div>
+        <div class="message-text">Presiona ESC para continuar</div>
+        <button id="resumeButton" class="button">Continuar</button>
+        <button id="quitButton" class="button" style="margin-left: 10px; background-color: #f44242;">Salir</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Obtener datos del jugador
+            const playerName = sessionStorage.getItem('playerName') || 'Piloto';
+            const playerSkin = sessionStorage.getItem('playerSkin') || 'ship1.png';
+
+            // Mostrar nombre del jugador
+            document.getElementById('playerName').textContent = playerName;
+
+            // Configuración del canvas
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Establecer proporción 4:3
+            const setCanvasSize = () => {
+                const container = document.querySelector('.canvas-container');
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+
+                // Calcular tamaño manteniendo proporción 4:3
+                let canvasWidth, canvasHeight;
+
+                if (containerWidth / containerHeight > 4 / 3) {
+                    // El contenedor es más ancho que 4:3
+                    canvasHeight = containerHeight;
+                    canvasWidth = canvasHeight * (4 / 3);
+                } else {
+                    // El contenedor es más alto que 4:3
+                    canvasWidth = containerWidth;
+                    canvasHeight = canvasWidth * (3 / 4);
+                }
+
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+            };
+
+            // Ajustar tamaño inicial y en redimensión
+            setCanvasSize();
+            window.addEventListener('resize', setCanvasSize);
+
+            // Cargar imágenes
+            const images = {};
+            const imageFiles = [
+                { name: 'playerShip', path: `/assets/skins/${playerSkin}` },
+                { name: 'bullet', path: '/assets/bullet.png' },
+                { name: 'bulletHoming', path: '/assets/bullet_homing.png' },
+                { name: 'bulletTriple', path: '/assets/bullet_triple.png' },
+                { name: 'powerUpTriple', path: '/assets/powerup_triple.png' },
+                { name: 'powerUpHoming', path: '/assets/powerup_homing.png' },
+                { name: 'explosion', path: '/assets/explosion.png' }
+            ];
+            let imagesLoaded = 0;
+            imageFiles.forEach(imageFile => {
+                const img = new Image();
+                img.src = imageFile.path;
+                img.onload = () => {
+                    imagesLoaded++;
+                    if (imagesLoaded === imageFiles.length) {
+                        // Todas las imágenes cargadas, iniciar juego
+                        initGame();
+                    }
+                };
+                img.onerror = (err) => {
+                    console.error(`Error al cargar imagen ${imageFile.name}:`, err);
+                    // Usar una imagen de respaldo en caso de error
+                    img.src = '/assets/skins/ship1.png';
+                };
+                images[imageFile.name] = img;
+            });
+
+            const playerSkins = {};
+            function loadPlayerSkin(playerId, skinPath) {
+                if (!playerSkins[playerId]) {
+                    const img = new Image();
+                    img.src = skinPath;
+                    img.onload = () => {
+                        playerSkins[playerId] = img;
+                    };
+                    img.onerror = () => {
+                        console.error(`Error al cargar skin para ${playerId}`);
+                        // Usar skin por defecto en caso de error
+                        img.src = '/assets/skins/ship1.png';
+                    };
+                    playerSkins[playerId] = img;
+                }
+            }
+
+            function createStar() {
+                const star = document.createElement('span');
+                star.classList.add('star');
+                star.style.zIndex = '-1';
+
+                const size = Math.random() * 3 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+
+                star.style.top = Math.random() * innerHeight + 'px';
+                star.style.left = Math.random() * innerWidth + 'px';
+
+                document.body.appendChild(star);
+
+                setTimeout(() => {
+                    star.remove();
+                }, 5000);
+            }
+            setInterval(createStar, 50);
+
+            // Inicialización del juego
+            function initGame() {
+                // Conectar al servidor
+                const socket = io();
+
+                // Datos del juego
+                let gameState = {
+                    players: {},
+                    bullets: {},
+                    powerUps: [],
+                    gameArea: { width: 2000, height: 1500 }
+                };
+
+                let playerId;
+                let cameraOffset = { x: 0, y: 0 };
+                let isPaused = false;
+                let explosions = [];
+                let messages = [];
+                let gameAreaRatio = gameState.gameArea.width / gameState.gameArea.height;
+                let canvasRatio = canvas.width / canvas.height;
+
+                // Control de teclas
+                const keys = {
+                    w: false,
+                    a: false,
+                    s: false,
+                    d: false,
+                    space: false,
+                    r: false
+                };
+
+                // Unirse al juego
+                socket.emit('joinGame', {
+                    name: playerName,
+                    skin: playerSkin
+                });
+
+                // Eventos del socket
+                socket.on('gameJoined', (data) => {
+                    playerId = data.id;
+                    gameState = data.gameState;
+
+                    // Cargar skins de todos los jugadores existentes
+                    for (const id in gameState.players) {
+                        const player = gameState.players[id];
+                        loadPlayerSkin(id, `/assets/skins/${player.skin}`);
+                    }
+
+                    // Centrar la cámara en el jugador
+                    updateCameraPosition();
+
+                    // Actualizar la lista de jugadores
+                    updatePlayerList();
+
+                    // Mensaje de bienvenida
+                    addMessage(`Bienvenido a la batalla, ${playerName}!`);
+                });
+
+                socket.on('playerJoined', (player) => {
+                    gameState.players[player.id] = player;
+                    // Cargar skin del nuevo jugador
+                    loadPlayerSkin(player.id, `/assets/skins/${player.skin}`);
+                    updatePlayerList();
+                    addMessage(`${player.name} se ha unido a la batalla!`);
+                });
+
+                socket.on('playerMoved', (data) => {
+                    if (gameState.players[data.id]) {
+                        gameState.players[data.id].x = data.x;
+                        gameState.players[data.id].y = data.y;
+                        gameState.players[data.id].rotation = data.rotation;
+                    }
+                });
+
+                socket.on('bulletCreated', (bullets) => {
+                    bullets.forEach(bullet => {
+                        gameState.bullets[bullet.id] = bullet;
+                    });
+                });
+
+                socket.on('bulletDestroyed', (data) => {
+                    if (gameState.bullets[data.id]) {
+                        delete gameState.bullets[data.id];
+                    }
+                });
+
+                socket.on('bulletsUpdate', (bullets) => {
+                    gameState.bullets = bullets;
+                });
+
+                socket.on('bulletHit', (data) => {
+                    const { bulletId, targetId } = data;
+
+                    if (gameState.bullets[bulletId] && gameState.players[targetId]) {
+                        // Crear explosión en la posición del impacto
+                        const bullet = gameState.bullets[bulletId];
+                        explosions.push({
+                            x: bullet.x,
+                            y: bullet.y,
+                            frame: 0,
+                            maxFrames: 8 // Número de frames para la animación
+                        });
+
+                        // Si el jugador que recibe el daño somos nosotros, enviar confirmación al servidor
+                        if (targetId === playerId) {
+                            socket.emit('playerHit', {
+                                bulletId: bulletId,
+                                targetId: targetId
+                            });
+                        }
+                    }
+                });
+
+                socket.on('reloadStarted', () => {
+                    if (gameState.players[playerId]) {
+                        const ammoValue = document.getElementById('ammoValue');
+                        ammoValue.textContent = "Recargando...";
+
+                        // Animación de recarga
+                        const ammoBar = document.getElementById('ammoBar');
+                        ammoBar.style.transition = 'width 1s linear';
+                        ammoBar.style.width = '100%';
+                        ammoBar.style.backgroundColor = '#4285f4'; // Azul durante recarga
+                    }
+                });
+
+                socket.on('playerDamaged', (data) => {
+                    if (gameState.players[data.id]) {
+                        gameState.players[data.id].health = data.health;
+
+                        // Actualizar UI si es el jugador local
+                        if (data.id === playerId) {
+                            updateHealthUI(data.health);
+
+                            // Feedback visual de daño (parpadeo rojo)
+                            document.body.style.backgroundColor = '#500a18';
+                            setTimeout(() => {
+                                document.body.style.backgroundColor = '#050a18';
+                            }, 100);
+
+                            // Mensaje si la salud es crítica
+                            if (data.health <= 30 && data.health > 0) {
+                                addMessage("¡ADVERTENCIA! Salud crítica");
+                            }
+                        }
+                    }
+                });
+
+                socket.on('playerKilled', (data) => {
+                    if (gameState.players[data.killed]) {
+                        gameState.players[data.killed].alive = false;
+
+                        // Crear explosión grande en la posición del jugador eliminado
+                        const player = gameState.players[data.killed];
+                        for (let i = 0; i < 5; i++) {
+                            explosions.push({
+                                x: player.x + (Math.random() * 40 - 20),
+                                y: player.y + (Math.random() * 40 - 20),
+                                frame: Math.floor(Math.random() * 3), // Inicio aleatorio
+                                maxFrames: 8
+                            });
+                        }
+
+                        // Mostrar mensaje de muerte si es el jugador local
+                        if (data.killed === playerId) {
+                            // Resetear munición y UI
+                            updateAmmoUI(0);
+                            updateHealthUI(0);
+
+                            // Mostrar mensaje de muerte
+                            document.getElementById('deathMessage').style.display = 'block';
+
+                            // Agregar nombre del asesino al mensaje si está disponible
+                            const killerName = gameState.players[data.killer]?.name || 'otro piloto';
+                            document.querySelector('#deathMessage .message-text').textContent =
+                                `Has sido eliminado por ${killerName}. ¿Quieres volver a la batalla?`;
+
+                            addMessage(`¡Has sido eliminado por ${killerName}!`);
+                        } else {
+                            const killedName = gameState.players[data.killed].name;
+                            const killerName = gameState.players[data.killer]?.name || 'otro piloto';
+                            addMessage(`${killedName} fue eliminado por ${killerName}!`);
+                        }
+
+                        updatePlayerList();
+                    }
+                });
+
+                socket.on('respawned', (data) => {
+                    if (gameState.players[playerId]) {
+                        gameState.players[playerId].x = data.position.x;
+                        gameState.players[playerId].y = data.position.y;
+                        gameState.players[playerId].health = 100;
+                        gameState.players[playerId].ammo = 10;
+                        gameState.players[playerId].alive = true;
+                        gameState.players[playerId].powerUp = null; // Quitar power-ups al reaparecer
+
+                        // Ocultar mensaje de muerte
+                        document.getElementById('deathMessage').style.display = 'none';
+
+                        // Actualizar UI
+                        updateHealthUI(100);
+                        updateAmmoUI(10);
+                        updatePlayerList();
+
+                        // Efecto de invencibilidad temporal (visual)
+                        const tempInvincibility = document.createElement('div');
+                        tempInvincibility.style.position = 'absolute';
+                        tempInvincibility.style.top = '0';
+                        tempInvincibility.style.left = '0';
+                        tempInvincibility.style.width = '100%';
+                        tempInvincibility.style.height = '100%';
+                        tempInvincibility.style.backgroundColor = 'rgba(66, 244, 152, 0.2)';
+                        tempInvincibility.style.pointerEvents = 'none';
+                        tempInvincibility.style.zIndex = '1000';
+                        document.body.appendChild(tempInvincibility);
+
+                        setTimeout(() => {
+                            tempInvincibility.remove();
+                        }, 2000);
+
+                        addMessage("¡Has vuelto a la batalla! Tienes 2 segundos de invencibilidad.");
+                    }
+                });
+
+                socket.on('playerRespawned', (data) => {
+                    if (gameState.players[data.id]) {
+                        gameState.players[data.id].x = data.x;
+                        gameState.players[data.id].y = data.y;
+                        gameState.players[data.id].health = 100;
+                        gameState.players[data.id].alive = true;
+
+                        addMessage(`${gameState.players[data.id].name} ha vuelto a la batalla!`);
+                        updatePlayerList();
+                    }
+                });
+
+                socket.on('powerUpSpawned', (powerUp) => {
+                    gameState.powerUps.push(powerUp);
+                });
+
+                socket.on('powerUpCollected', (data) => {
+                    // Eliminar el power-up
+                    gameState.powerUps = gameState.powerUps.filter(pu => pu.id !== data.powerUpId);
+
+                    // Aplicar al jugador
+                    if (gameState.players[data.playerId]) {
+                        gameState.players[data.playerId].powerUp = data.powerUpType;
+
+                        // Si es el jugador local
+                        if (data.playerId === playerId) {
+                            showPowerUpIndicator(data.powerUpType);
+                            addMessage(`¡Has obtenido un power-up de ${data.powerUpType === 'triple' ? 'disparo triple' : 'misil teledirigido'}!`);
+                        }
+                    }
+                });
+
+                socket.on('ammoReloaded', (data) => {
+                    if (gameState.players[playerId]) {
+                        gameState.players[playerId].ammo = data.ammo;
+                        gameState.players[playerId].reloading = false;
+
+                        // Restaurar estilo normal
+                        const ammoBar = document.getElementById('ammoBar');
+                        ammoBar.style.transition = 'width 0.3s ease';
+
+                        updateAmmoUI(data.ammo);
+                        addMessage("¡Munición recargada!");
+                    }
+                });
+                
+                socket.on('scoreUpdated', (data) => {
+                    if (gameState.players[playerId]) {
+                        gameState.players[playerId].score = data.score;
+                        updateScoreUI(data.score);
+                        updatePlayerList(); // Añadir esta línea para actualizar la clasificación
+                    }
+                });
+
+                socket.on('playerDisconnected', (data) => {
+                    if (gameState.players[data.id]) {
+                        addMessage(`${gameState.players[data.id].name} abandonó la batalla.`);
+                        delete gameState.players[data.id];
+                        updatePlayerList();
+                    }
+                });
+
+                // Eventos de teclado
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        togglePause();
+                        return;
+                    }
+
+                    if (isPaused) return;
+
+                    switch (e.key.toLowerCase()) {
+                        case 'w': keys.w = true; break;
+                        case 'a': keys.a = true; break;
+                        case 's': keys.s = true; break;
+                        case 'd': keys.d = true; break;
+                        case ' ': keys.space = true; break;
+                        case 'r': keys.r = true; break;
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    switch (e.key.toLowerCase()) {
+                        case 'w': keys.w = false; break;
+                        case 'a': keys.a = false; break;
+                        case 's': keys.s = false; break;
+                        case 'd': keys.d = false; break;
+                        case ' ': keys.space = false; break;
+                        case 'r': keys.r = false; break;
+                    }
+                });
+
+                // Botones de UI
+                document.getElementById('respawnButton').addEventListener('click', () => {
+                    socket.emit('respawn');
+                });
+
+                document.getElementById('resumeButton').addEventListener('click', () => {
+                    togglePause();
+                });
+
+                document.getElementById('quitButton').addEventListener('click', () => {
+                    window.location.href = '/';
+                });
+
+                document.getElementById('exitButton').addEventListener('click', () => {
+                    window.location.href = '/';
+                });
+
+                // Funciones auxiliares
+                function togglePause() {
+                    isPaused = !isPaused;
+                    document.getElementById('pauseMenu').style.display = isPaused ? 'block' : 'none';
+                }
+
+                function updateCameraPosition() {
+                    if (!gameState.players[playerId] || !gameState.players[playerId].alive) return;
+
+                    const player = gameState.players[playerId];
+                    cameraOffset.x = player.x - canvas.width / 2;
+                    cameraOffset.y = player.y - canvas.height / 2;
+
+                    // Limitar la cámara al área de juego
+                    cameraOffset.x = Math.max(0, Math.min(cameraOffset.x, gameState.gameArea.width - canvas.width));
+                    cameraOffset.y = Math.max(0, Math.min(cameraOffset.y, gameState.gameArea.height - canvas.height));
+                }
+
+                function worldToScreen(x, y) {
+                    return {
+                        x: x - cameraOffset.x,
+                        y: y - cameraOffset.y
+                    };
+                }
+
+                function updateHealthUI(health) {
+                    const healthBar = document.getElementById('healthBar');
+                    const healthValue = document.getElementById('healthValue');
+
+                    healthBar.style.width = `${health}%`;
+                    healthValue.textContent = `${health}/100`;
+
+                    if (health < 30) {
+                        healthBar.style.backgroundColor = '#f44242';
+                    } else if (health < 60) {
+                        healthBar.style.backgroundColor = '#f4b942';
+                    } else {
+                        healthBar.style.backgroundColor = '#42f498';
+                    }
+                }
+
+                function updateAmmoUI(ammo) {
+                    const ammoBar = document.getElementById('ammoBar');
+                    const ammoValue = document.getElementById('ammoValue');
+
+                    ammoBar.style.width = `${ammo * 10}%`;
+                    ammoValue.textContent = `${ammo}/10`;
+
+                    // Cambio de color según cantidad de munición
+                    if (ammo <= 2) {
+                        ammoBar.style.backgroundColor = '#f44242'; // Rojo para munición crítica
+                    } else if (ammo <= 5) {
+                        ammoBar.style.backgroundColor = '#f4b942'; // Amarillo para munición baja
+                    } else {
+                        ammoBar.style.backgroundColor = '#f4b942'; // Color normal
+                    }
+                }
+
+                function updateScoreUI(score) {
+                    document.getElementById('scoreValue').textContent = score;
+                }
+
+                function updatePlayerList() {
+                    const container = document.getElementById('playerListContainer');
+                    container.innerHTML = '';
+
+                    // Ordenar jugadores por puntuación
+                    const sortedPlayers = Object.values(gameState.players).sort((a, b) => b.score - a.score);
+
+                    sortedPlayers.forEach(player => {
+                        const item = document.createElement('div');
+                        item.className = 'player-item';
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'player-name';
+                        nameSpan.textContent = player.name;
+                        if (!player.alive) {
+                            nameSpan.style.color = '#f44242';
+                            nameSpan.textContent += ' (eliminado)';
+                        }
+                        if (player.id === playerId) {
+                            nameSpan.style.fontWeight = 'bold';
+                        }
+
+                        const scoreSpan = document.createElement('span');
+                        scoreSpan.className = 'player-score';
+                        scoreSpan.textContent = player.score;
+
+                        item.appendChild(nameSpan);
+                        item.appendChild(scoreSpan);
+                        container.appendChild(item);
+                    });
+                }
+
+                function showPowerUpIndicator(type) {
+                    const indicator = document.getElementById('powerUpIndicator');
+                    indicator.textContent = type === 'triple' ? '¡DISPARO TRIPLE ACTIVADO!' : '¡MISIL TELEDIRIGIDO ACTIVADO!';
+                    indicator.style.display = 'block';
+
+                    setTimeout(() => {
+                        indicator.style.display = 'none';
+                    }, 3000);
+                }
+
+                function addMessage(text) {
+                    messages.push({
+                        text: text,
+                        time: Date.now()
+                    });
+
+                    // Limitar a 5 mensajes
+                    if (messages.length > 5) {
+                        messages.shift();
+                    }
+
+                    // Actualizar UI
+                    const container = document.getElementById('gameMessages');
+                    container.innerHTML = '';
+
+                    messages.forEach(msg => {
+                        const p = document.createElement('p');
+                        p.textContent = msg.text;
+                        container.appendChild(p);
+                    });
+                }
+
+                function checkPowerUpCollisions() {
+                    if (!gameState.players[playerId] || !gameState.players[playerId].alive) return;
+
+                    const player = gameState.players[playerId];
+
+                    for (let i = 0; i < gameState.powerUps.length; i++) {
+                        const powerUp = gameState.powerUps[i];
+                        const dx = player.x - powerUp.x;
+                        const dy = player.y - powerUp.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 40) { // Radio de colisión
+                            socket.emit('collectPowerUp', powerUp.id);
+                            break;
+                        }
+                    }
+                }
+
+                function processPlayerInput() {
+                    if (!gameState.players[playerId] || !gameState.players[playerId].alive || isPaused) return;
+
+                    const player = gameState.players[playerId];
+                    let moved = false;
+
+                    // Movimiento
+                    if (keys.w) {
+                        player.y -= player.speed;
+                        moved = true;
+                    }
+                    if (keys.s) {
+                        player.y += player.speed;
+                        moved = true;
+                    }
+                    if (keys.a) {
+                        player.x -= player.speed;
+                        moved = true;
+                    }
+                    if (keys.d) {
+                        player.x += player.speed;
+                        moved = true;
+                    }
+
+                    // Limitar al área de juego
+                    player.x = Math.max(0, Math.min(player.x, gameState.gameArea.width));
+                    player.y = Math.max(0, Math.min(player.y, gameState.gameArea.height));
+
+                    // Calcular rotación basada en las teclas presionadas
+                    if (moved) {
+                        let angle = 0;
+
+                        if (keys.w && !keys.s) {
+                            if (keys.a && !keys.d) angle = -Math.PI * 0.75; // Arriba-izquierda
+                            else if (keys.d && !keys.a) angle = -Math.PI * 0.25; // Arriba-derecha
+                            else angle = -Math.PI / 2; // Arriba
+                        } else if (keys.s && !keys.w) {
+                            if (keys.a && !keys.d) angle = Math.PI * 0.75; // Abajo-izquierda
+                            else if (keys.d && !keys.a) angle = Math.PI * 0.25; // Abajo-derecha
+                            else angle = Math.PI / 2; // Abajo
+                        } else if (keys.a && !keys.d) {
+                            angle = Math.PI; // Izquierda
+                        } else if (keys.d && !keys.a) {
+                            angle = 0; // Derecha
+                        }
+
+                        player.rotation = angle;
+
+                        // Enviar movimiento al servidor
+                        socket.emit('playerMovement', {
+                            x: player.x,
+                            y: player.y,
+                            rotation: player.rotation
+                        });
+                    }
+
+                    // Disparar
+                    if (keys.space && player.ammo > 0 && !player.reloading) {
+                        socket.emit('playerShoot', {
+                            x: player.x,
+                            y: player.y
+                        });
+                        keys.space = false; // Evitar disparo continuo
+                    }
+
+                    // Recargar manualmente
+                    if (keys.r && !player.reloading) {
+                        player.reloading = true;
+                        addMessage("Recargando...");
+
+                        socket.emit('playerShoot', {
+                            x: player.x,
+                            y: player.y,
+                            reload: true
+                        });
+
+                        keys.r = false;
+                    }
+                }
+
+                function drawBackground() {
+                    // Dibujar fondo (grid)
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    ctx.strokeStyle = 'rgba(66, 133, 244, 0.2)';
+                    ctx.lineWidth = 1;
+
+                    const gridSize = 100;
+                    const offsetX = cameraOffset.x % gridSize;
+                    const offsetY = cameraOffset.y % gridSize;
+
+                    // Líneas verticales
+                    for (let x = -offsetX; x <= canvas.width; x += gridSize) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, 0);
+                        ctx.lineTo(x, canvas.height);
+                        ctx.stroke();
+                    }
+
+                    // Líneas horizontales
+                    for (let y = -offsetY; y <= canvas.height; y += gridSize) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(canvas.width, y);
+                        ctx.stroke();
+                    }
+
+                    // Límites del área de juego
+                    ctx.strokeStyle = 'rgba(244, 66, 66, 0.5)';
+                    ctx.lineWidth = 2;
+
+                    const gameBounds = {
+                        left: -cameraOffset.x,
+                        top: -cameraOffset.y,
+                        right: gameState.gameArea.width - cameraOffset.x,
+                        bottom: gameState.gameArea.height - cameraOffset.y
+                    };
+
+                    ctx.strokeRect(
+                        gameBounds.left,
+                        gameBounds.top,
+                        gameState.gameArea.width,
+                        gameState.gameArea.height
+                    );
+                }
+
+                function drawPlayers() {
+                    for (const id in gameState.players) {
+                        const player = gameState.players[id];
+                        if (!player.alive) continue;
+
+                        const screenPos = worldToScreen(player.x, player.y);
+
+                        // Solo dibujar si está en pantalla
+                        if (screenPos.x < -50 || screenPos.x > canvas.width + 50 ||
+                            screenPos.y < -50 || screenPos.y > canvas.height + 50) {
+                            continue;
+                        }
+
+                        ctx.save();
+                        ctx.translate(screenPos.x, screenPos.y);
+                        ctx.rotate(player.rotation);
+
+                        // Dibujar nave con la skin correcta
+                        const shipImage = id === playerId ? images.playerShip : playerSkins[id] || images.playerShip;
+                        ctx.drawImage(shipImage, -20, -20, 40, 40);
+
+                        // ...existing code for drawing player names and health...
+                        ctx.restore();
+                        // ...existing code...
+                    }
+                }
+
+                function drawBullets() {
+                    for (const id in gameState.bullets) {
+                        const bullet = gameState.bullets[id];
+                        const screenPos = worldToScreen(bullet.x, bullet.y);
+
+                        // Solo dibujar si está en pantalla
+                        if (screenPos.x < -20 || screenPos.x > canvas.width + 20 ||
+                            screenPos.y < -20 || screenPos.y > canvas.height + 20) {
+                            continue;
+                        }
+
+                        ctx.save();
+                        ctx.translate(screenPos.x, screenPos.y);
+
+                        // Calcular ángulo de rotación basado en la velocidad
+                        const angle = Math.atan2(bullet.velocityY, bullet.velocityX);
+                        ctx.rotate(angle);
+
+                        // Seleccionar imagen según el tipo de bala
+                        let bulletImage;
+                        let bulletSize = 15;
+
+                        if (bullet.type === 'triple') {
+                            bulletImage = images.bulletTriple;
+                        } else if (bullet.type === 'homing') {
+                            bulletImage = images.bulletHoming;
+                            bulletSize = 20;
+                        } else {
+                            bulletImage = images.bullet;
+                        }
+
+                        // Dibujar bala
+                        ctx.drawImage(bulletImage, -bulletSize / 2, -bulletSize / 2, bulletSize, bulletSize);
+
+                        ctx.restore();
+                    }
+                }
+
+                function drawPowerUps() {
+                    for (let i = 0; i < gameState.powerUps.length; i++) {
+                        const powerUp = gameState.powerUps[i];
+                        const screenPos = worldToScreen(powerUp.x, powerUp.y);
+
+                        // Solo dibujar si está en pantalla
+                        if (screenPos.x < -30 || screenPos.x > canvas.width + 30 ||
+                            screenPos.y < -30 || screenPos.y > canvas.height + 30) {
+                            continue;
+                        }
+
+                        // Animación flotante
+                        const floatOffset = Math.sin(Date.now() * 0.003) * 5;
+
+                        // Seleccionar imagen según el tipo
+                        const image = powerUp.type === 'triple' ? images.powerUpTriple : images.powerUpHoming;
+
+                        // Dibujar power-up
+                        ctx.drawImage(
+                            image,
+                            screenPos.x - 15,
+                            screenPos.y - 15 + floatOffset,
+                            30,
+                            30
+                        );
+
+                        // Efecto brillante
+                        ctx.globalAlpha = 0.3 + 0.2 * Math.sin(Date.now() * 0.005);
+                        ctx.beginPath();
+                        ctx.arc(screenPos.x, screenPos.y + floatOffset, 20, 0, Math.PI * 2);
+                        ctx.fillStyle = powerUp.type === 'triple' ? 'rgba(244, 185, 66, 0.3)' : 'rgba(66, 244, 152, 0.3)';
+                        ctx.fill();
+                        ctx.globalAlpha = 1.0;
+                    }
+                }
+
+                function drawExplosions() {
+                    for (let i = explosions.length - 1; i >= 0; i--) {
+                        const explosion = explosions[i];
+                        const screenPos = worldToScreen(explosion.x, explosion.y);
+
+                        // Solo dibujar si está en pantalla
+                        if (screenPos.x < -50 || screenPos.x > canvas.width + 50 ||
+                            screenPos.y < -50 || screenPos.y > canvas.height + 50) {
+                            explosions.splice(i, 1);
+                            continue;
+                        }
+
+                        // Dibujar frame de explosión
+                        const frameSize = 64;
+                        ctx.drawImage(
+                            images.explosion,
+                            explosion.frame * frameSize, 0, frameSize, frameSize,
+                            screenPos.x - 32, screenPos.y - 32, 64, 64
+                        );
+
+                        // Avanzar animación
+                        explosion.frame++;
+
+                        // Eliminar explosión al terminar animación
+                        if (explosion.frame >= explosion.maxFrames) {
+                            explosions.splice(i, 1);
+                        }
+                    }
+                }
+
+                function gameLoop() {
+                    if (!isPaused) {
+                        processPlayerInput();
+                        checkPowerUpCollisions();
+                        updateCameraPosition();
+                    }
+
+                    drawBackground();
+                    drawPowerUps();
+                    drawBullets();
+                    drawPlayers();
+                    drawExplosions();
+
+                    requestAnimationFrame(gameLoop);
+                }
+
+                // Iniciar el juego
+                gameLoop();
+            }
+        });
+    </script>
+</body>
+
+</html>
