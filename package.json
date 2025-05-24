@@ -5,7 +5,9 @@
   "description": "Videojuego de navegador web compatible con escritorio y moviles",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon --inspect server.js 80"
+    "start": "node server.js",
+    "dev": "nodemon --inspect server.js",
+    "build": "echo \"No se requiere paso de build\""
   },
   "keywords": [],
   "author": "Sebastian Morales <sebastian.morales74@inacapmail.cl>",

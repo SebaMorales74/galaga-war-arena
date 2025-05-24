@@ -363,14 +363,14 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const sounds = {
-            shoot: new Audio('/assets/sounds/shoot.ogg'),
-            hit: new Audio('/assets/sounds/hit.ogg'),
-            powerUp: new Audio('/assets/sounds/powerup.ogg'),
-            death: new Audio('/assets/sounds/death.ogg'),
-            respawn: new Audio('/assets/sounds/respawn.ogg'),
-            move: new Audio('/assets/sounds/move.ogg'),
-            reload: new Audio('/assets/sounds/reload.ogg'),
-            bgm_arena: new Audio('/assets/sounds/bgm_arena.ogg'),
+            shoot: new Audio('/./assets/sounds/shoot.ogg'),
+            hit: new Audio('/./assets/sounds/hit.ogg'),
+            powerUp: new Audio('/./assets/sounds/powerup.ogg'),
+            death: new Audio('/./assets/sounds/death.ogg'),
+            respawn: new Audio('/./assets/sounds/respawn.ogg'),
+            move: new Audio('/./assets/sounds/move.ogg'),
+            reload: new Audio('/./assets/sounds/reload.ogg'),
+            bgm_arena: new Audio('/./assets/sounds/bgm_arena.ogg'),
         };
         sounds.move.loop = true;
         sounds.bgm_arena.loop = true;
@@ -424,13 +424,13 @@
             // Cargar imágenes
             const images = {};
             const imageFiles = [
-                { name: 'playerShip', path: `/assets/skins/${playerSkin}` },
-                { name: 'bullet', path: '/assets/bullet.png' },
-                { name: 'bulletHoming', path: '/assets/bullet_homing.png' },
-                { name: 'bulletTriple', path: '/assets/bullet_triple.png' },
-                { name: 'powerUpTriple', path: '/assets/powerup_triple.png' },
-                { name: 'powerUpHoming', path: '/assets/powerup_homing.png' },
-                { name: 'explosion', path: '/assets/explosion.png' }
+                { name: 'playerShip', path: `/./assets/skins/${playerSkin}` },
+                { name: 'bullet', path: '/./assets/bullet.png' },
+                { name: 'bulletHoming', path: '/./assets/bullet_homing.png' },
+                { name: 'bulletTriple', path: '/./assets/bullet_triple.png' },
+                { name: 'powerUpTriple', path: '/./assets/powerup_triple.png' },
+                { name: 'powerUpHoming', path: '/./assets/powerup_homing.png' },
+                { name: 'explosion', path: '/./assets/explosion.png' }
             ];
             let imagesLoaded = 0;
             imageFiles.forEach(imageFile => {
@@ -446,7 +446,7 @@
                 img.onerror = (err) => {
                     console.error(`Error al cargar imagen ${imageFile.name}:`, err);
                     // Usar una imagen de respaldo en caso de error
-                    img.src = '/assets/skins/ship1.png';
+                    img.src = '/./assets/skins/ship1.png';
                 };
                 images[imageFile.name] = img;
             });
@@ -462,7 +462,7 @@
                     img.onerror = () => {
                         console.error(`Error al cargar skin para ${playerId}`);
                         // Usar skin por defecto en caso de error
-                        img.src = '/assets/skins/ship1.png';
+                        img.src = '/./assets/skins/ship1.png';
                     };
                     playerSkins[playerId] = img;
                 }
@@ -536,7 +536,7 @@
                     // Cargar skins de todos los jugadores existentes
                     for (const id in gameState.players) {
                         const player = gameState.players[id];
-                        loadPlayerSkin(id, `/assets/skins/${player.skin}`);
+                        loadPlayerSkin(id, `/./assets/skins/${player.skin}`);
                     }
 
                     // Centrar la cámara en el jugador
@@ -551,7 +551,7 @@
                 socket.on('playerJoined', (player) => {
                     gameState.players[player.id] = player;
                     // Cargar skin del nuevo jugador
-                    loadPlayerSkin(player.id, `/assets/skins/${player.skin}`);
+                    loadPlayerSkin(player.id, `/./assets/skins/${player.skin}`);
                     updatePlayerList();
                     addMessage(`${player.name} se ha unido a la batalla!`);
                 });
