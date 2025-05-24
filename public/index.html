@@ -223,18 +223,6 @@
                 }
             });
 
-            if (navigator.getAutoplayPolicy("mediaelement") === "allowed") {
-                bgmSound.volume = 0.2; // Volumen bajo
-                bgmSound.loop = true; // Repetir música
-                bgmSound.play();
-            } else if (navigator.getAutoplayPolicy("mediaelement") === "allowed-muted") {
-                bgmSound.volume = 0; // Silenciar música
-                bgmSound.loop = true; // Repetir música
-                bgmSound.play();
-            } else if (navigator.getAutoplayPolicy("mediaelement") === "disallowed") {
-                bgmSound.pause();
-            }
-
             function playSound(sound) {
                 // Clonamos el sonido para permitir reproducciones superpuestas
                 const soundClone = sound.cloneNode();
