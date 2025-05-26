@@ -20,6 +20,10 @@
             "dest": "/public/assets/$1"
         },
         {
+            "src": "/scripts/(.*)",
+            "dest": "/public/scripts/$1"
+        },
+        {
             "src": "/save-skin",
             "dest": "server.js"
         },

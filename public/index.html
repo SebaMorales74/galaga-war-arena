@@ -5,93 +5,21 @@
     <title>Galaga War Arena</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Fuente personalizada utilizada de Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./style.css">
-    <style>
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        /* Estilos para el modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background-color: #0a1929;
-            border: 2px solid #4285f4;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(66, 133, 244, 0.6);
-            padding: 20px;
-            width: 90%;
-            max-width: 400px;
-            animation: modalFadeIn 0.3s ease-out;
-        }
-
-        @keyframes modalFadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .canvas-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .canvas-container h3 {
-            margin-top: 0;
-            text-align: center;
-            color: #4285f4;
-        }
-
-        #skinCanvas {
-            margin: 0 auto;
-            border: 2px solid #4285f4;
-            border-radius: 5px;
-            background-color: black;
-        }
-
-        .canvas-tools {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .modal-buttons button {
-            flex: 1;
-        }
-    </style>
+    <!-- Estilos -->
+    <link rel="stylesheet" href="./styles/menu.css">
+    <!-- SFX -->
+    <audio id="draw" src="./assets/sounds/draw.ogg" preload="auto"></audio>
+    <audio id="inputEnter" src="./assets/sounds/input_enter.ogg" preload="auto"></audio>
+    <audio id="inputLeave" src="./assets/sounds/input_leave.ogg" preload="auto"></audio>
     <audio id="hoverSound" src="./assets/sounds/hover.ogg" preload="auto"></audio>
-    <audio id="clickSound" src="./assets/sounds/click.ogg" preload="auto"></audio>
+    <audio id="clickDownSound" src="./assets/sounds/click_down.ogg" preload="auto"></audio>
+    <audio id="clickUpSound" src="./assets/sounds/click_up.ogg" preload="auto"></audio>
     <audio id="typeSound" src="./assets/sounds/type.ogg" preload="auto"></audio>
+    <!-- Musica de fondo -->
     <audio id="bgmSound" src="./assets/sounds/bgm_menu.ogg" preload="auto"></audio>
 </head>
 
@@ -113,7 +41,7 @@
                         <img src="./assets/skins/ship3.png" class="skin-option" data-skin="ship3.png" alt="Nave 3">
                         <img src="./assets/skins/ship4.png" class="skin-option" data-skin="ship4.png" alt="Nave 4">
                         <div class="skin-option custom-skin" id="customSkinButton">
-                            <img src="..." alt="Nave Personalizada" id="customSkinImage" style="display: none;">
+                            <img alt="Nave Personalizada" id="customSkinImage" style="display: none;">
                             <p>Personalizar</p>
                         </div>
                     </div>
@@ -142,7 +70,6 @@
         </div>
     </div>
 
-    <!-- Modal para personalizar nave -->
     <div class="modal-overlay" id="skinModal">
         <div class="modal-content">
             <div class="canvas-container">
@@ -160,295 +87,10 @@
             </div>
         </div>
     </div>
-
-    <script>
-        function starsRendering() {
-            const star = document.createElement('span');
-            const cont = document.querySelector('div');
-            star.classList.add('star');
-            star.style.zIndex = '-1';
-            var value = Math.random() * 5;
-
-            star.style.width = value + 'px';
-            star.style.height = value + 'px';
-
-            star.style.top = Math.random() * innerHeight + 'px';
-            star.style.left = Math.random() * innerWidth + 'px';
-
-            cont.appendChild(star);
-
-            setTimeout(() => {
-                star.remove();
-            }, 5000);
-        }
-        setInterval(starsRendering, 50);
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Variables
-            let selectedSkin = 'ship1.png';
-            let customSkinData = null;
-            let isDrawing = false;
-            let eraserMode = false;
-
-            // Elementos del DOM
-            const playerNameInput = document.getElementById('playerName');
-            const skinOptions = document.querySelectorAll('.skin-option');
-            const customSkinButton = document.getElementById('customSkinButton');
-            const skinModal = document.getElementById('skinModal');
-            const skinCanvas = document.getElementById('skinCanvas');
-            const ctx = skinCanvas.getContext('2d');
-            const colorPicker = document.getElementById('colorPicker');
-            const eraserButton = document.getElementById('eraserButton');
-            const clearButton = document.getElementById('clearButton');
-            const saveSkinButton = document.getElementById('saveSkinButton');
-            const cancelSkinButton = document.getElementById('cancelSkinButton');
-            const playButton = document.getElementById('playButton');
-            const playMusicButton = document.getElementById('playMusicButton');
-
-            const hoverSound = document.getElementById('hoverSound');
-            const clickSound = document.getElementById('clickSound');
-            const typeSound = document.getElementById('typeSound');
-            const bgmSound = document.getElementById('bgmSound');
-
-            // Reproducción de música de fondo
-            playMusicButton.addEventListener('click', function () {
-                if (bgmSound.paused) {
-                    bgmSound.volume = 0.2; // Volumen bajo
-                    bgmSound.loop = true; // Repetir música
-                    bgmSound.play();
-                    playMusicButton.textContent = 'Música Activada';
-                } else {
-                    bgmSound.pause();
-                    playMusicButton.textContent = 'Activar Música';
-                }
-            });
-
-            function playSound(sound) {
-                // Clonamos el sonido para permitir reproducciones superpuestas
-                const soundClone = sound.cloneNode();
-                soundClone.volume = 0.6; // Volumen moderado
-                soundClone.play();
-
-                // Limpieza después de reproducir
-                soundClone.addEventListener('ended', function () {
-                    this.remove();
-                });
-            }
-            // Implementación de efectos de sonido
-
-            // 1. Hover en elementos interactuables
-            const interactiveElements = document.querySelectorAll('.button, .skin-option, #colorPicker');
-            interactiveElements.forEach(element => {
-                element.addEventListener('mouseenter', function () {
-                    playSound(hoverSound);
-                });
-            });
-
-            // 2. Click en botones
-            const buttons = document.querySelectorAll('.button, .skin-option, #eraserButton, #clearButton');
-            buttons.forEach(button => {
-                button.addEventListener('click', function () {
-                    playSound(clickSound);
-                });
-            });
-
-            // 3. Escribir en el input
-            playerNameInput.addEventListener('input', function (e) {
-                playSound(typeSound);
-            });
-
-            // Configuración inicial del canvas
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
-
-            // Selección de skin
-            skinOptions.forEach(option => {
-                option.addEventListener('click', function () {
-                    if (this.classList.contains('custom-skin')) return;
-
-                    // Quitar selección previa
-                    skinOptions.forEach(opt => opt.classList.remove('selected'));
-
-                    // Aplicar nueva selección
-                    this.classList.add('selected');
-                    selectedSkin = this.getAttribute('data-skin');
-                    customSkinData = null;
-                });
-            });
-
-            // Abrir modal de skin personalizada
-            customSkinButton.addEventListener('click', function () {
-                const playerName = playerNameInput.value.trim();
-
-                if (!playerName) {
-                    alert('Por favor, ingresa tu nombre para comenzar.');
-                    return;
-                }
-
-                skinModal.style.display = 'flex';
-                // Limpiar canvas
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
-            });
-
-            // Funciones de dibujo
-            skinCanvas.addEventListener('mousedown', startDrawing);
-            skinCanvas.addEventListener('mousemove', draw);
-            skinCanvas.addEventListener('mouseup', stopDrawing);
-            skinCanvas.addEventListener('mouseout', stopDrawing);
-
-            function startDrawing(e) {
-                isDrawing = true;
-                draw(e);
-            }
-
-            function draw(e) {
-                if (!isDrawing) return;
-
-                const rect = skinCanvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                ctx.lineWidth = 10;
-                ctx.lineCap = 'round';
-
-                if (eraserMode) {
-                    ctx.strokeStyle = 'black';
-                    ctx.lineWidth = 15;
-                } else {
-                    ctx.strokeStyle = colorPicker.value;
-                }
-
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-            }
-
-            function stopDrawing() {
-                isDrawing = false;
-            }
-
-            // Botones de herramientas
-            eraserButton.addEventListener('click', function () {
-                eraserMode = !eraserMode;
-                this.textContent = eraserMode ? 'Pincel' : 'Borrador';
-            });
-
-            clearButton.addEventListener('click', function () {
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
-            });
-
-            // Cerrar modal y cancelar diseño
-            cancelSkinButton.addEventListener('click', function () {
-                skinModal.style.display = 'none';
-
-                // Restaurar la selección previa si no hay skin personalizada
-                if (!customSkinData) {
-                    // Quitar selección de todas las opciones
-                    skinOptions.forEach(opt => opt.classList.remove('selected'));
-
-                    // Buscar la opción que coincide con selectedSkin y seleccionarla
-                    skinOptions.forEach(opt => {
-                        if (opt.getAttribute('data-skin') === selectedSkin) {
-                            opt.classList.add('selected');
-                        }
-                    });
-
-                    // Si no hay selección, seleccionar la primera por defecto
-                    if (!document.querySelector('.skin-option.selected')) {
-                        skinOptions[0].classList.add('selected');
-                        selectedSkin = skinOptions[0].getAttribute('data-skin');
-                    }
-                }
-            });
-
-            // Cerrar modal al hacer clic fuera del contenido
-            skinModal.addEventListener('click', function (e) {
-                if (e.target === skinModal) {
-                    cancelSkinButton.click();
-                }
-            });
-
-            saveSkinButton.addEventListener('click', function () {
-                if (!playerNameInput.value) {
-                    alert('Por favor, ingresa tu nombre antes de guardar tu diseño.');
-                    return;
-                }
-
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 90;
-                tempCanvas.height = 90;
-                const tempCtx = tempCanvas.getContext('2d');
-
-                tempCtx.fillStyle = 'black';
-                tempCtx.fillRect(0, 0, 90, 90);
-                tempCtx.drawImage(skinCanvas, 0, 0, skinCanvas.width, skinCanvas.height, 0, 0, 90, 90);
-
-                customSkinData = tempCanvas.toDataURL('image/png');
-
-                fetch('/save-skin', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        imageData: customSkinData,
-                        playerName: playerNameInput.value
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Quitar selección previa
-                            skinOptions.forEach(opt => opt.classList.remove('selected'));
-
-                            // Seleccionar la opción personalizada
-                            customSkinButton.classList.add('selected');
-                            selectedSkin = data.fileName; // Guardamos el nombre del archivo, no la ruta completa
-
-                            // Actualizar la previsualización en el botón de personalizar
-                            const customSkinImage = document.getElementById('customSkinImage');
-                            customSkinImage.src = data.skinPath;
-                            customSkinImage.style.display = 'block';
-
-                            // Ocultar el texto "Personalizar" cuando se muestra la imagen
-                            const customSkinText = customSkinButton.querySelector('p');
-                            if (customSkinText) {
-                                customSkinText.style.display = 'none';
-                            }
-
-                            // Ocultar el modal
-                            skinModal.style.display = 'none';
-                        } else {
-                            alert('Error al guardar la imagen: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Ocurrió un error al guardar tu diseño. Inténtalo nuevamente.');
-                    });
-            });
-
-            // Iniciar juego
-            playButton.addEventListener('click', function () {
-                const playerName = playerNameInput.value.trim();
-
-                if (!playerName) {
-                    alert('Por favor, ingresa tu nombre para comenzar.');
-                    return;
-                }
-
-                // Guardar datos del jugador en sessionStorage
-                sessionStorage.setItem('playerName', playerName);
-                sessionStorage.setItem('playerSkin', selectedSkin);
-
-                // Redirigir a la página del juego
-                window.location.href = '/game';
-            });
-        });
-    </script>
+    <!-- Lógica del menú -->
+    <script type="module" src="./scripts/menu/index.js"></script>
+    <script src="./scripts/menu/soundsHandler.js"></script>
+    <script src="./scripts/menu/starsBg.js"></script>
 </body>
 
 </html>
