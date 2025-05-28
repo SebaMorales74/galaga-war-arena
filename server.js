@@ -24,6 +24,10 @@ app.get('/game', (req, res) => {
     res.sendFile(join(__dirname, 'public/game.html'));
 });
 
+app.get('/spectate', (req, res) => {
+    res.sendFile(join(__dirname, 'public/spectate.html'));
+});
+
 app.post('/save-skin', async (req, res) => {
     const { imageData, playerName } = req.body;
 

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Galaga War Arena - Espectador</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #050a18;
+        }
+
+        #spectatorCanvas {
+            display: block;
+            background: black;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="spectatorCanvas"></canvas>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+        integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+        crossorigin="anonymous"></script>
+    <script>
+        (function () {
+            const canvas = document.getElementById('spectatorCanvas');
+            const ctx = canvas.getContext('2d');
+            const WORLD = { width: 2000, height: 1500 };
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                scaleX = canvas.width / WORLD.width;
+                scaleY = canvas.height / WORLD.height;
+            }
+            let scaleX = 1, scaleY = 1;
+            window.addEventListener('resize', resize);
+            resize();
+
+            let gameState = { players: {}, bullets: {}, powerUps: [] };
+
+            const socket = io();
+            // cargar estado inicial de jugadores
+            fetch('/players').then(r => r.json()).then(list => {
+                list.forEach(p => {
+                    gameState.players[p.id] = p;
+                });
+            });
+
+            // eventos de estado
+            socket.on('playerJoined', p => gameState.players[p.id] = p);
+            socket.on('playerMoved', d => {
+                const p = gameState.players[d.id];
+                if (p) { p.x = d.x; p.y = d.y; p.rotation = d.rotation; }
+            });
+            socket.on('playerDisconnected', d => { delete gameState.players[d.id]; });
+            socket.on('playerKilled', d => {
+                if (gameState.players[d.killed])
+                    gameState.players[d.killed].alive = false;
+            });
+            socket.on('playerRespawned', d => {
+                const p = gameState.players[d.id];
+                if (p) { p.alive = true; p.x = d.x; p.y = d.y; p.health = 100; }
+            });
+            socket.on('bulletCreated', blts => {
+                blts.forEach(b => gameState.bullets[b.id] = b);
+            });
+            socket.on('bulletsUpdate', bltMap => gameState.bullets = bltMap);
+            socket.on('bulletDestroyed', d => delete gameState.bullets[d.id]);
+            socket.on('powerUpSpawned', pu => gameState.powerUps.push(pu));
+            socket.on('powerUpCollected', d => {
+                gameState.powerUps = gameState.powerUps.filter(p => p.id !== d.powerUpId);
+            });
+
+            // imágenes
+            const images = {};
+            const toLoad = [
+                { k: 'ship', url: '/./assets/skins/ship1.png' },
+                { k: 'bullet', url: '/./assets/bullet.png' },
+                { k: 'bulletH', url: '/./assets/bullet_homing.png' },
+                { k: 'bulletT', url: '/./assets/bullet_triple.png' },
+                { k: 'puT', url: '/./assets/powerup_triple.png' },
+                { k: 'puH', url: '/./assets/powerup_homing.png' },
+                { k: 'expl', url: '/./assets/explosion.png' }
+            ];
+            let loaded = 0;
+            toLoad.forEach(info => {
+                const img = new Image();
+                img.src = info.url;
+                img.onload = () => { if (++loaded === toLoad.length) start(); };
+                images[info.k] = img;
+            });
+
+            function worldToScreen(x, y) {
+                return { x: x * scaleX, y: y * scaleY };
+            }
+
+            function draw() {
+                // fondo
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // powerUps
+                gameState.powerUps.forEach(pu => {
+                    const sp = worldToScreen(pu.x, pu.y);
+                    const img = pu.type === 'triple' ? images.puT : images.puH;
+                    const size = 30 * scaleX;
+                    ctx.drawImage(img, sp.x - size / 2, sp.y - size / 2, size, size);
+                });
+                // balas
+                Object.values(gameState.bullets).forEach(b => {
+                    const sp = worldToScreen(b.x, b.y);
+                    ctx.save();
+                    ctx.translate(sp.x, sp.y);
+                    const ang = Math.atan2(b.velocityY, b.velocityX);
+                    ctx.rotate(ang);
+                    let img = images.bullet;
+                    let s = 15 * scaleX;
+                    if (b.type === 'homing') { img = images.bulletH; s = 20 * scaleX; }
+                    else if (b.type === 'triple') { img = images.bulletT; }
+                    ctx.drawImage(img, -s / 2, -s / 2, s, s);
+                    ctx.restore();
+                });
+                // jugadores
+                Object.values(gameState.players).forEach(p => {
+                    if (!p.alive) return;
+                    const sp = worldToScreen(p.x, p.y);
+                    ctx.save();
+                    ctx.translate(sp.x, sp.y);
+                    ctx.rotate(p.rotation);
+                    ctx.drawImage(images.ship, -20 * scaleX, -20 * scaleX, 40 * scaleX, 40 * scaleX);
+                    ctx.restore();
+                });
+                requestAnimationFrame(draw);
+            }
+
+            function start() {
+                draw();
+            }
+        })();
+    </script>
+</body>
+
+</html>
