@@ -112,11 +112,46 @@ input[type="text"] {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* CONTENEDOR DE CANVAS */
 .canvas-container {
+    background-color: #0d1b2a;
+    border: 2px solid #4285f4;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 0 15px rgba(66, 133, 244, 0.5);
+    width: fit-content;
+    margin: 0 auto;
+}
+
+/* TÍTULO */
+.canvas-container h3 {
+    color: #61dafb;
+    font-size: 2.2vh;
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px rgba(97, 218, 251, 0.7);
+}
+
+/* HERRAMIENTAS */
+.canvas-tools {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    margin-top: 20px;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+/* COLOR PICKER */
+.color-picker {
+    width: 36px;
+    height: 36px;
+    border: 2px solid #fff;
+    border-radius: 4px;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+/* RANGE (TAMAÑO DEL PINCEL) */
+.canvas-tools label {
+    color: #fff;
+    font-size: 1.8vh;
 }
 
 #skinCanvas {
@@ -137,6 +172,48 @@ input[type="text"] {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+}
+
+/* RANGE (TAMAÑO DEL PINCEL) */
+.canvas-tools label {
+    color: #fff;
+    font-size: 1.8vh;
+}
+
+#brushSize {
+    width: 60px;
+    padding: 4px;
+    font-size: 1.8vh;
+    border: 1px solid #4285f4;
+    border-radius: 4px;
+    background: #0d1b2a;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+}
+
+#brushSize:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(66, 133, 244, 0.7);
+}
+
+/* BOTONES DEL MODAL */
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.modal-buttons button {
+    flex: 1;
+    padding: 12px 0;
+    font-size: 1.8vh;
+    border-radius: 5px;
+    transition: transform 0.2s;
+}
+
+.modal-buttons button:hover {
+    transform: scale(1.05);
 }
 
 .button {
@@ -262,7 +339,7 @@ a {
     align-items: center;
 }
 
-.modal-content {
+/* .modal-content {
     background-color: #0a1929;
     border: 2px solid #4285f4;
     border-radius: 10px;
@@ -271,7 +348,7 @@ a {
     width: 90%;
     max-width: 400px;
     animation: modalFadeIn 0.3s ease-out;
-}
+} */
 
 @keyframes modalFadeIn {
     from {
@@ -289,6 +366,7 @@ a {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    align-items: center;
 }
 
 .canvas-container h3 {
@@ -297,11 +375,21 @@ a {
     color: #4285f4;
 }
 
-#skinCanvas {
-    margin: 0 auto;
-    border: 2px solid #4285f4;
-    border-radius: 5px;
-    background-color: black;
+.canvas-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+#skinCanvas,
+#gridCanvas {
+    display: block;
+}
+
+#gridCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
 }
 
 .canvas-tools {

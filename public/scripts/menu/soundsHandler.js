@@ -9,7 +9,6 @@ const clickDownSound = document.getElementById('clickDownSound');
 const clickUpSound = document.getElementById('clickUpSound');
 const hoverSound = document.getElementById('hoverSound');
 
-const drawSound = document.getElementById('draw');
 const inputEnterSound = document.getElementById('inputEnter');
 const inputLeaveSound = document.getElementById('inputLeave');
 
@@ -68,11 +67,6 @@ buttons.forEach(button => {
     button.addEventListener('click', function () {
         playSound(clickUpSound);
     });
-});
-
-skinCanvas.addEventListener('mousedown', () => playSound(drawSound));
-skinCanvas.addEventListener('mousemove', (e) => {
-    if (e.buttons === 1) playSound(drawSound);
 });
 
 playerNameInput.addEventListener('focus', () => playSound(inputEnterSound));

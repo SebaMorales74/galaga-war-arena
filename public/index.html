@@ -12,7 +12,6 @@
     <!-- Estilos -->
     <link rel="stylesheet" href="./styles/menu.css">
     <!-- SFX -->
-    <audio id="draw" src="./assets/sounds/draw.ogg" preload="auto"></audio>
     <audio id="inputEnter" src="./assets/sounds/input_enter.ogg" preload="auto"></audio>
     <audio id="inputLeave" src="./assets/sounds/input_leave.ogg" preload="auto"></audio>
     <audio id="hoverSound" src="./assets/sounds/hover.ogg" preload="auto"></audio>
@@ -74,11 +73,20 @@
         <div class="modal-content">
             <div class="canvas-container">
                 <h3>Diseña tu nave</h3>
-                <canvas id="skinCanvas" width="250" height="250"></canvas>
+                <div class="canvas-wrapper">
+                    <!-- capa de dibujo -->
+                    <canvas id="skinCanvas" width="250" height="250"></canvas>
+                    <!-- capa de grid -->
+                    <canvas id="gridCanvas" width="250" height="250"></canvas>
+                </div>
                 <div class="canvas-tools">
                     <input type="color" id="colorPicker" class="color-picker" value="#ffffff">
                     <button class="button secondary" id="eraserButton">Borrador</button>
                     <button class="button secondary" id="clearButton">Limpiar</button>
+                    <!-- Nuevo botón de cubeta -->
+                    <button class="button secondary" id="bucketButton">Cubeta</button>
+                    <!-- Control de tamaño -->
+                    <input disabled type="number" id="brushSize" min="1" max="50" value="24">
                 </div>
                 <div class="modal-buttons">
                     <button class="button" id="saveSkinButton">Guardar Diseño</button>
