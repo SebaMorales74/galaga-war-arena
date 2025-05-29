@@ -5,18 +5,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let customSkinData = null;
     let isDrawing = false;
-    let eraserMode = false
+    let eraserMode = false;
+
+    let bucketMode = false;
+    let brushSize = 23;
 
     const skinOptions = document.querySelectorAll('.skin-option');
     const customSkinButton = document.getElementById('customSkinButton');
     const skinModal = document.getElementById('skinModal');
+
     const skinCanvas = document.getElementById('skinCanvas');
     const ctx = skinCanvas.getContext('2d');
+    const gridCanvas = document.getElementById('gridCanvas');
+    const gridCtx = gridCanvas.getContext('2d');
+
     const colorPicker = document.getElementById('colorPicker');
     const eraserButton = document.getElementById('eraserButton');
     const clearButton = document.getElementById('clearButton');
     const saveSkinButton = document.getElementById('saveSkinButton');
     const cancelSkinButton = document.getElementById('cancelSkinButton');
+
+    const bucketButton = document.getElementById('bucketButton');
+    const brushSizeInput = document.getElementById('brushSize');
+
+    brushSizeInput.style.display = 'none';
 
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
@@ -43,14 +55,61 @@ document.addEventListener('DOMContentLoaded', function () {
 
         skinModal.style.display = 'flex';
 
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
+        drawGrid();
     });
 
-    skinCanvas.addEventListener('mousedown', startDrawing);
+
+    function drawGrid() {
+        const w = skinCanvas.width, h = skinCanvas.height;
+        gridCtx.clearRect(0, 0, w, h);
+        gridCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+        gridCtx.lineWidth = 1;
+        gridCtx.beginPath();
+        for (let x = 0; x <= w; x += brushSize) {
+            gridCtx.moveTo(x + 0.5, 0);
+            gridCtx.lineTo(x + 0.5, h);
+        }
+        for (let y = 0; y <= h; y += brushSize) {
+            gridCtx.moveTo(0, y + 0.5);
+            gridCtx.lineTo(w, y + 0.5);
+        }
+        gridCtx.stroke();
+    }
+
+    function clearCanvas() {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
+        drawGrid();
+    }
+
+    brushSizeInput.addEventListener('input', () => {
+        brushSize = parseInt(brushSizeInput.value, 24) || 1;
+        clearCanvas();
+    });
+
+    bucketButton.addEventListener('click', () => {
+        bucketMode = !bucketMode;
+        eraserMode = false;
+        bucketButton.textContent = bucketMode ? 'Pincel' : 'Cubeta';
+        eraserButton.textContent = 'Borrador';
+    });
+
+    skinCanvas.addEventListener('mousedown', handleCanvasClick);
     skinCanvas.addEventListener('mousemove', draw);
     skinCanvas.addEventListener('mouseup', stopDrawing);
     skinCanvas.addEventListener('mouseout', stopDrawing);
+
+    function handleCanvasClick(e) {
+        if (bucketMode) {
+            const rect = skinCanvas.getBoundingClientRect();
+            const x = Math.floor(e.clientX - rect.left);
+            const y = Math.floor(e.clientY - rect.top);
+            const fillCol = hexToRgba(colorPicker.value);
+            floodFill(x, y, fillCol);
+        } else {
+            startDrawing(e);
+        }
+    }
 
     function startDrawing(e) {
         isDrawing = true;
@@ -58,41 +117,60 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function draw(e) {
-        if (!isDrawing) return;
-
+        if (!isDrawing || bucketMode) return;
         const rect = skinCanvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        ctx.lineWidth = 10;
-        ctx.lineCap = 'round';
-
-        if (eraserMode) {
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 15;
-        } else {
-            ctx.strokeStyle = colorPicker.value;
-        }
-
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x, y);
-        ctx.stroke();
+        let x = e.clientX - rect.left;
+        let y = e.clientY - rect.top;
+        x = Math.floor(x / brushSize) * brushSize;
+        y = Math.floor(y / brushSize) * brushSize;
+        ctx.fillStyle = eraserMode ? 'black' : colorPicker.value;
+        ctx.fillRect(x, y, brushSize, brushSize);
     }
 
     function stopDrawing() {
         isDrawing = false;
     }
 
-    eraserButton.addEventListener('click', function () {
+    eraserButton.addEventListener('click', () => {
         eraserMode = !eraserMode;
-        this.textContent = eraserMode ? 'Pincel' : 'Borrador';
+        bucketMode = false;
+        eraserButton.textContent = eraserMode ? 'Pincel' : 'Borrador';
+        bucketButton.textContent = 'Cubeta';
     });
 
-    clearButton.addEventListener('click', function () {
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
-    });
+    function floodFill(startX, startY, fillColor) {
+        const w = skinCanvas.width, h = skinCanvas.height;
+        const img = ctx.getImageData(0, 0, w, h);
+        const data = img.data;
+        const stack = [[startX, startY]];
+        const idx = (x, y) => (y * w + x) * 4;
+        const targetIdx = idx(startX, startY);
+        const targetColor = data.slice(targetIdx, targetIdx + 4).join(',');
+        const newColor = fillColor.join(',');
+        if (targetColor === newColor) return;
+        while (stack.length) {
+            const [x, y] = stack.pop();
+            let i = idx(x, y);
+            if (data.slice(i, i + 4).join(',') !== targetColor) continue;
+            data[i] = fillColor[0];
+            data[i + 1] = fillColor[1];
+            data[i + 2] = fillColor[2];
+            data[i + 3] = fillColor[3];
+            if (x > 0) stack.push([x - 1, y]);
+            if (x < w - 1) stack.push([x + 1, y]);
+            if (y > 0) stack.push([x, y - 1]);
+            if (y < h - 1) stack.push([x, y + 1]);
+        }
+        ctx.putImageData(img, 0, 0);
+    }
+
+    function hexToRgba(hex) {
+        const v = hex.replace('#', '');
+        const num = parseInt(v, 16);
+        return [(num >> 16) & 255, (num >> 8) & 255, num & 255, 255];
+    }
+
+    clearButton.addEventListener('click', clearCanvas);
 
     cancelSkinButton.addEventListener('click', function () {
         skinModal.style.display = 'none';
