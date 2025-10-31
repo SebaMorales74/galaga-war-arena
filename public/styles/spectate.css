@@ -1,0 +1,50 @@
+:root{
+    --bg-1: #05081a;
+    --bg-2: #071028;
+    --glass: rgba(255,255,255,0.06);
+    --accent: #7ef0ff;
+    --accent-2: #7cff8b;
+    --neon: rgba(126,240,255,0.9);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0;overflow:hidden;font-family:Segoe UI, Roboto, Arial, sans-serif;color:#eaf6ff}
+body{
+    background: radial-gradient(ellipse at center, var(--bg-2) 0%, var(--bg-1) 60%);
+}
+
+#starsCanvas, #spectatorCanvas{
+    position:fixed;
+    top:0;left:0;width:100%;height:100%;display:block;
+}
+#starsCanvas{z-index:0;pointer-events:none}
+#spectatorCanvas{z-index:1;pointer-events:none;background:transparent}
+
+.ui-overlay{position:fixed;z-index:2;inset:0;display:flex;flex-direction:column;align-items:flex-start;gap:1rem;padding:2rem;pointer-events:auto}
+.ui-header{backdrop-filter: blur(6px);background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));border-radius:12px;padding:14px 18px;border:1px solid rgba(126,240,255,0.08);box-shadow:0 6px 30px rgba(0,0,0,0.6)}
+.title{margin:0;font-size:1.6rem;letter-spacing:2px;color:var(--neon);text-shadow:0 0 14px rgba(126,240,255,0.12), 0 0 30px rgba(126,240,255,0.06)}
+.subtitle{margin:0;font-size:0.85rem;color:rgba(234,246,255,0.75)}
+
+.panels{display:flex;gap:1rem;margin-top:0.8rem}
+.panel{min-width:220px;max-width:360px;padding:12px 14px;border-radius:10px;background:var(--glass);border:1px solid rgba(126,240,255,0.04);box-shadow:0 8px 24px rgba(3,8,20,0.6)}
+.panel h3{margin:0 0 8px 0;font-size:0.95rem;color:var(--accent)}
+.panel.info{color:#dffeff}
+.panel.legend ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.panel.legend li{display:flex;align-items:center;gap:8px;color:#d7f8ff}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;box-shadow:0 0 8px rgba(0,0,0,0.4)}
+.dot.ship{background:linear-gradient(90deg,#fff,#7ef0ff);box-shadow:0 0 8px rgba(126,240,255,0.4)}
+.dot.bullet{background:linear-gradient(90deg,#ffd27e,#ff7ef0);box-shadow:0 0 8px rgba(255,126,240,0.2)}
+.dot.pu{background:linear-gradient(90deg,#7cff8b,#7ef0ff);box-shadow:0 0 8px rgba(124,255,139,0.25)}
+
+.ui-footer{margin-top:auto;padding:8px 12px;border-radius:8px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(126,240,255,0.03);font-size:0.85rem;color:rgba(234,246,255,0.8)}
+
+/* small screens */
+@media (max-width:640px){
+    .panels{flex-direction:column}
+    .ui-overlay{padding:1rem}
+}
+
+/* subtle animated gradient glow */
+.title::after{content:'';display:block;height:4px;width:140px;margin-top:8px;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent-2));opacity:0.25;filter:blur(8px)}
+
+/* Accessibility: hide canvas from assistive tech */
+#starsCanvas[aria-hidden="true"]{visibility:visible}

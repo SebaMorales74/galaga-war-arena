@@ -4,27 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <title>Galaga War Arena - Espectador</title>
-    <style>
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: #050a18;
-        }
-
-        #spectatorCanvas {
-            display: block;
-            background: black;
-        }
-    </style>
+    <link rel="stylesheet" href="/styles/spectate.css">
 </head>
 
 <body>
+    <canvas id="starsCanvas" aria-hidden="true"></canvas>
     <canvas id="spectatorCanvas"></canvas>
+
+    <div class="ui-overlay">
+        <header class="ui-header">
+            <h1 class="title">GALAGA WAR ARENA</h1>
+            <p class="subtitle">Modo espectador</p>
+        </header>
+
+        <section class="panels">
+            <div class="panel info">
+                <h3>Estado</h3>
+                <div id="spectator-stats">Jugadores: <span id="players-count">0</span></div>
+            </div>
+        </section>
+
+        <footer class="ui-footer">Hecho por @SoyElSeba_</footer>
+    </div>
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
         integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
         crossorigin="anonymous"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+        integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+        crossorigin="anonymous"></script>
+    <script src="/scripts/spectateStars.js"></script>
     <script>
         (function () {
             const canvas = document.getElementById('spectatorCanvas');
@@ -48,15 +56,16 @@
                 list.forEach(p => {
                     gameState.players[p.id] = p;
                 });
+                document.getElementById('players-count').textContent = Object.keys(gameState.players).length;
             });
 
             // eventos de estado
-            socket.on('playerJoined', p => gameState.players[p.id] = p);
+            socket.on('playerJoined', p => { gameState.players[p.id] = p; document.getElementById('players-count').textContent = Object.keys(gameState.players).length; });
             socket.on('playerMoved', d => {
                 const p = gameState.players[d.id];
                 if (p) { p.x = d.x; p.y = d.y; p.rotation = d.rotation; }
             });
-            socket.on('playerDisconnected', d => { delete gameState.players[d.id]; });
+            socket.on('playerDisconnected', d => { delete gameState.players[d.id]; document.getElementById('players-count').textContent = Object.keys(gameState.players).length; });
             socket.on('playerKilled', d => {
                 if (gameState.players[d.killed])
                     gameState.players[d.killed].alive = false;
@@ -99,7 +108,7 @@
             }
 
             function draw() {
-                // fondo
+                // fondo transparente (las estrellas están en otro canvas)
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 // powerUps
                 gameState.powerUps.forEach(pu => {
